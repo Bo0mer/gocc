@@ -1,0 +1,84 @@
+Race detector, network servers
+16.01.2023
+
+* Race detector
+
+	var n int
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		for i := 0; i < 100_000; i++ {
+			n++
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		for i := 0; i < 100_000; i++ {
+			n++
+		}
+	}()
+
+	wg.Wait()
+	fmt.Println(n)
+
+- Какво ще видим на екрана?
+
+* Race detector
+
+    $ go test -race mypkg    // test the package
+    $ go run -race mysrc.go  // compile and run the program
+    $ go build -race mycmd   // build the command
+
+* Race detector
+
+    ==================
+    WARNING: DATA RACE
+    Read at 0x00c000136028 by goroutine 8:
+      main.main.func2()
+          /tmp/gocc/race.go:22 +0x88
+
+    Previous write at 0x00c000136028 by goroutine 7:
+      main.main.func1()
+          /tmp/gocc/race.go:15 +0x98
+
+    Goroutine 8 (running) created at:
+      main.main()
+          /tmp/gocc/race.go:19 +0x1a8
+
+    Goroutine 7 (running) created at:
+      main.main()
+          /tmp/gocc/race.go:12 +0x108
+    ==================
+    155740
+    Found 1 data race(s)
+
+* Как работи
+
+- компилатора инструментира достъпванията на памет със специален код
+- runtime-а следи за несинхронизиран достъп до споделени променливи
+- инструментираните програми ползват повече памет и CPU
+- хваща пробмели само когато се случват
+- детайли: go.dev/blog/race-detector
+
+* TCP чат сървър
+
+- протокол за предаване на данни
+- надеждност и последователност
+
+* HTTP сървър
+
+    GET /api/v1/students
+    GET /api/v1/students/<id>
+    POST /api/v1/students/<id>
+    PATCH /api/v1/students/<id>
+    DELETE /api/v1/students/<id>
+
+* HTTP клиент
+
+    GET /api/v1/students
+    GET /api/v1/students/<id>
+    POST /api/v1/students/<id>
+    PATCH /api/v1/students/<id>
+    DELETE /api/v1/students/<id>
