@@ -1,0 +1,493 @@
+Интерфейси и грешки
+09.01.2023
+
+* Но преди това...
+
+* Въпрос #1
+
+Кои от следните типове са допустими ключове на map?
+
+- `string`
+- `[5]int`
+- `[]int`
+- `struct{int}`
+- `*[]int`
+- `interface{}`
+
+* Въпрос #1
+
+Отговор:
+
+- Всички без `[]int`
+- ...да, `*[]int` допустим ключ, макар и не много полезен:
+
+.play code/concurrency101/map-keys.go /^func main/,
+
+* Въпрос #2
+
+Как инициализираме thread-safe slice или map?
+
+* Въпрос #2
+
+- Няма такова животно
+- Трябва сами да се погрижим за thread-safe достъп до тях
+
+* Въпрос #3
+
+- Какво представлява receiver?
+
+* Въпрос #3
+
+- Няма фиксирана ключова дума за това.
+- Има просто конвенция (първата/ите букви от името на типа)
+- Той може да бъде по стойност, както и указател
+
+* Интерфейси
+
+* struct
+
+.code code/types_and_interfaces/shapes.go /start types/,/end types/
+
+* Методи за тези типове
+
+.code code/types_and_interfaces/shapes.go /start methods/,/end methods/
+
+* Интерфейси
+
+- Какво правим, ако искаме да имаме списък от геометрични фигури, на които ще търсим обиколка или лице?
+- Тези типове нямат общ "родител"
+- Няма нужда и да са в един пакет
+- Това в Go се постига с интерфейси
+- Интерфейсите са както съвкупност от методи, така и тип от езика
+- Общият интерфейс на двете фигури са методите `Circumference()` и `Area()`
+- Нашите фигури нямат представа, че такъв интерфейс съществува
+
+* Stringer
+
+    type Stringer interface {
+        String() string
+    }
+
+Това е интерфейс от стандартната библиотека, дефиниран в пакета `fmt`.
+
+Ако имплементираме този интефейс за наш тип, може да променим начина, по който `fmt.Printf()` го принтира чрез `%s`.
+
+.play code/types_and_interfaces/stringer.go /start/,/end/
+
+* Структура на тип
+
+    type Binary uint64
+
+- Стойност от тип Binary
+
+.image assets/interface0.png
+
+* Структура на интерфейс
+
+- Стойност от тип Stringer
+
+.image assets/interface.png
+
+- Интерфейсните стойности представляват двойка
+- Указател към данните
+- Указател към информация за типа, записан в интерфейсната стойност
+- Присвояването на b към интерфейса от тип Stringer променя двойката
+
+По-подробно обяснение може да намерите тук: [[http://research.swtch.com/interfaces]]
+
+* Дефиниция на интерфейс
+
+.code code/types_and_interfaces/shapes.go /start interface/,/end interface/
+
+- Това е нов абстрактен тип, от който не можем да създаваме обекти, но можем да имаме променливи от него
+- Всеки тип, който има методите `Circumference` и `Area` със същата сигнатура, имплементира `Shape`
+- Двата типа `Triangle` и `Rectangle` *имплицитно* го имплементират
+- Променливите от тип интерфейс са първокласни обекти в Go
+
+
+* Пример
+
+.play code/types_and_interfaces/shapes.go /start funcs/,/end funcs/
+
+
+* Вложени типове
+
+- Можем да накараме един тип да присвои държанието на друг тип
+- Това не е наследяване в смисъла на OOP
+- Влагащият тип не е от тип вложения (демек няма is-a релация)
+- Просто получава всички негови полета и методи
+- Има два начина да ги използваме
+
+
+* Композиция
+
+_Конструираме_един_тип,_комбинирайки_няколко_прости_други_типa._
+
+Пример:
+Искаме да си направим smartphone. Не откриваме топлата вода, а просто го наблъскваме с каквито джаджи се сетим.
+
+	type Smartphone struct {
+		phone     BasicPhone
+		camera    CameraModule
+		wifi      WiFiModule
+		screen    MultiTouchScreen
+		battery   DamnHugeBattery
+		gyroscope SmallGyroscope
+		gps       GPSModule
+		secret    CanOpener
+	}
+
+Всеки един от тези типове отговаря за точно едно нещо и може да бъде използвано самостоятелно.
+
+
+* Квази-Наследяване
+
+Вярваме, че знаете как работи то. Дори сме сигурни, че сте правили хора и студенти:
+
+.play code/types_and_interfaces/anon_structs.go /start/,/end/
+
+Вложеният тип Person е анонимен, което присвоява всичките му методи и атрибути на базовия тип.
+
+* Множествено "наследяване"
+
+Да, имате право на много анонимни вложени типа.
+
+Не, това не е яко.
+
+Да, не очакваме да го ползвате често.
+
+
+* Duck typing
+
+Всеки обект имплементира празния интерфейс:
+
+    interface{}
+
+Съответно на променлива от такъв тип може да присвоим всякаква стойност!
+
+Но с нея не можем да правим абсолютно нищо :)
+
+Това може да звучи безполезно, но не е, тъй като имаме...
+
+
+* Type Assertion
+
+.play code/types_and_interfaces/type_assertion.go
+
+В `str` ще имаме стойността на `value`, ако тя наистина е била от тип `string`.
+
+
+* Type Switch
+
+.play code/types_and_interfaces/interface_conversions.go /^type mystruct/,
+
+
+Така може да правим различни неща въз основа на типа на променлива.
+
+
+* JSON
+
+.play code/types_and_interfaces/plain_json.go /^type Rectangle/,
+
+
+* JSON
+
+	type Marshaler interface {
+		MarshalJSON() ([]byte, error)
+	}
+
+	type Unmarshaler interface {
+		UnmarshalJSON([]byte) error
+	}
+
+* JSON
+
+
+.play code/types_and_interfaces/custom_json.go /start/,/end/
+
+
+* Type Aliases
+
+	type integerAlias = int
+
+*Не* създава нов тип, a псевдоним на вече съществуващ тип
+
+.play -edit code/types_and_interfaces/type_aliases.go /START OMIT/,/END OMIT/
+
+* sort.Interface
+
+    type Interface interface {
+        Len() int
+        Less(i, j int) bool
+        Swap(i, j int)
+    }
+
+Пример
+
+    // ByAge implements sort.Interface for []Person based on
+    // the Age field.
+    type ByAge []Person
+
+    func (a ByAge) Len() int           { return len(a) }
+    func (a ByAge) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+    func (a ByAge) Less(i, j int) bool { return a[i].Age < a[j].Age }
+
+* http.Handler
+
+    type Handler interface {
+        ServeHTTP(ResponseWriter, *Request)
+    }
+
+Пример
+
+    package main
+
+    import (
+        "fmt"
+        "net/http"
+    )
+
+    func main() {
+        http.ListenAndServe(":8080", helloWorldHandler{})
+    }
+
+    type helloWorldHandler struct{}
+
+    func (helloWorldHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+        fmt.Fprint(w, "Hello, world!")
+    }
+
+* Error handling
+
+* Error handling
+
+Има грубо-казано 2 начина
+
+- 1) Връщане на грешка като (част от) резултата от функция
+- 2) Изпадане в паника
+
+* Връщане на грешка
+
+- Има конвенция обектите, които се връщат, да отговарят на следния глобално-достъпен интерфейс:
+
+    type error interface {
+        Error() string
+    }
+
+- Разбира се, всеки може да връща "по-сложни" обекти, даващи повече информация за грешката. Например, `os.Open` връща `os.PathError`:
+
+    type PathError struct {
+        Op string    // "open", "unlink", etc.
+        Path string  // Файлът с грешката
+        Err error    // Грешката, върната от system call-a
+    }
+
+    func (e *PathError) Error() string {
+        return e.Op + " " + e.Path + ": " + e.Err.Error()
+    }
+
+* Стандартна употреба
+
+    func ReadFile(filename string) ([]byte, error) {
+        f, err := os.Open(filename)
+        if err != nil {
+            return nil, err
+        }
+        //...
+    }
+
+или малко по-сложно:
+
+    func CreateFile(filename string) (*os.File, error) {
+        var file, err = os.Create(filename)
+        if e, ok := err.(*os.PathError); ok && e.Err == syscall.ENOSPC {
+            deleteTempFiles() // Free some space
+            return os.Create(filename)
+        }
+        return file, err
+    }
+
+* Errors are values
+
+Често оплакване на Go програмисти е количеството проверки за грешки:
+
+    if err != nil {
+        return err
+    }
+
+- Това е донякъде вярно, особено ако даден код се обръща често към "външния свят" (`os`, `io`, `net`, etc.)
+- За разлика от други езици, които може да имат exceptions и try-catch, в Go грешките се третират като нормални стойности
+- Това е умишлено, защото помага за обработката на всички грешки на правилното място
+- Така нямаме глобални "try-catch" блокове и изненадващи exceptions, които идват от 20 нива навътре в call stack-а
+- Повече подробности на [[https://blog.golang.org/errors-are-values]]
+
+* Пример
+
+    if _, err := fd.Write(p0[a:b]); err != nil {
+        return err
+    }
+    if _, err := fd.Write(p1[c:d]); err != nil {
+        return err
+    }
+    if _, err := fd.Write(p2[e:f]); err != nil {
+        return err
+    }
+
+Може да стане:
+
+    var err error
+    write := func(buf []byte) {
+        if err == nil {
+            _, err = w.Write(buf)
+        }
+    }
+    write(p0[a:b])
+    write(p1[c:d])
+    write(p2[e:f])
+    if err != nil {
+        return err
+    }
+
+* Създаване на грешки
+
+- може да връщате собствен тип, който имплементира `error` интерфейса
+- може да използвате функцията `New(string)` от пакета `errors`:
+
+    func someFunc(a int) (someResult, error) {
+        if a <= 0 {
+            return nil, errors.New("a must be positive!")
+        }
+        // ...
+    }
+
+- може да използвате `fmt.Errorf`:
+
+    func someFunc(a int) (someResult, error) {
+        if a <= 0 {
+            return nil, fmt.Errorf("a is %d, but it must be positive!", a)
+        }
+        // ...
+    }
+
+- може да си направите и собствен "конструктор"
+
+* Добавяне на контекст
+
+- когато имате помощни функции е добре да добавяте контекст към грешките
+
+    func readConfigFromFile(path string) (config, error) {
+        data, err := ioutil.ReadFile(path)
+        if err != nil {
+            return fmt.Errorf("error reading config file: %w", err)
+        }
+        // ...
+    }
+
+- но какво става ако искаме да възстановим оригиналната грешка?
+
+* Unwrap
+
+- `errors.Unwrap` идва на помощ
+
+    // Unwrap returns the result of calling the Unwrap method on err, if err's
+    // type contains an Unwrap method returning error. Otherwise, Unwrap
+    // returns nil.
+    func Unwrap(err error) error
+
+- съответно може да го правим за наши типове
+
+    type PathError struct {
+        Op string    // "open", "unlink", etc.
+        Path string  // Файлът с грешката
+        Err error    // Грешката, върната от system call-a
+    }
+
+    (e *PathError) Unwrap() error { return e.Err }
+
+- или да го ползваме за грешки създадени с `fmt.Errorf`
+
+    return fmt.Errorf("error reading config file: %w", err)
+
+* Върволица от грешки
+
+- `Unwrap` връща грешка, която също може да се `Unwrap`-не
+- `Unwrap`-натата грешка връща грешка, която също може да се `Unwrap`-не
+- ...
+- Имаме си върволица от грешки
+- `errors` пакета дава методи за лесна работи с такива върволици
+
+* Върволица от грешки
+
+- `errors.Is` проверавя дали дадена грешка се среща във върволицата
+
+    if _, err := os.Open("non-existing"); err != nil {
+        if errors.Is(err, os.ErrNotExist) {
+            fmt.Println("file does not exist")
+        } else {
+            fmt.Println(err)
+        }
+    }
+
+- `errors.As` ни дава стойността на първата грешка от конкретен тип във
+  върволицата
+
+    if _, err := os.Open("non-existing"); err != nil {
+        var pathError *os.PathError
+        if errors.As(err, &pathError) {
+            fmt.Println("Failed at path:", pathError.Path)
+        } else {
+            fmt.Println(err)
+        }
+    }
+
+* Не връщайте грешки от конкретен тип!
+
+.play -edit code/errors_and_testing/nilerror.go /START1 OMIT/,/END1 OMIT/
+
+
+* Припомняне на defer
+
+- `defer` е специален механизъм на езика
+- `defer` добавя *извикване* на функция в един списък (стек)
+- Когато обграждащата функция приключи, тези извиквания се изпълняват в обратен ред
+
+.play code/errors_and_testing/defer_example.go /^func main/,/^}/
+
+- defer се използва за сигурно и лесно почистване на ресурси (отворени файлове, заключени mutex-и, etc.) ... и справяне с панирани програми!
+
+* Паника!
+
+- Нещо като изключенията
+- Ползваме ги само в крайни случаи (не като изключенията)
+- Изпадайки в паника, подавате обект с грешката
+- Добрата новина е, че можете да се съвземате от тях... пак буквално
+
+
+* Уточнения
+
+- `panic` е вградена функция
+- Тя спира нормалното изпълнение на програмата
+- Когато функция F изпълни `panic`, изпълнението на F спира, всички `defer`-нати функции на F се изпълняват нормално, след което изпълнението се връща във функцията, извикала F
+- За извикващия на F, F е все едно извикване на `panic`
+- Това продължава, докато всички функции в текущата горутина (`thread`) не свършат, когато програмата гърми
+- Паники се случват след директното извикване на функцията `panic`, както и след разни runtime грешки, като `out-of-bounds`array`access`
+
+* Избягвайте ненужното изпадане в паника
+.image assets/panic.jpg 550 500
+
+* recover
+
+- Съвзема от паника
+- `recover` е безполезен без `defer` ( може да се съвземете само в defer )
+- `recover` не прави нищо (връща `nil`), ако текущата горутина не е в паника
+- Ако е, `recover` връща аргумента, подаден на `panic`
+
+* Example
+
+.play -edit code/errors_and_testing/recover_simple.go /^func foo/,
+
+* Example
+
+.code code/errors_and_testing/panic.go /^func f/,/END OMIT/
+.play code/errors_and_testing/panic.go /^func main/,/^}/
+
